@@ -10,6 +10,13 @@ import java.util.Properties;
 
 import javax.servlet.ServletContextEvent;
 
+import org.eclipse.jgit.api.CloneCommand;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.errors.InvalidRefNameException;
+import org.eclipse.jgit.api.errors.JGitInternalException;
+import org.eclipse.jgit.api.errors.RefAlreadyExistsException;
+import org.eclipse.jgit.api.errors.RefNotFoundException;
+import org.eclipse.jgit.transport.SshSessionFactory;
 import org.jgroups.JChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +28,7 @@ import com.google.inject.name.Names;
 import com.google.inject.servlet.GuiceServletContextListener;
 import com.google.inject.servlet.ServletModule;
 import com.meltmedia.cadmium.jgit.impl.CoordinatedWorkerImpl;
+import com.meltmedia.cadmium.jgit.impl.GithubConfigSessionFactory;
 import com.meltmedia.cadmium.jgroups.ContentService;
 import com.meltmedia.cadmium.jgroups.CoordinatedWorker;
 import com.meltmedia.cadmium.jgroups.JChannelProvider;
@@ -41,6 +49,7 @@ import com.sun.jersey.guice.spi.container.servlet.GuiceContainer;
 
 public class DemoListener extends GuiceServletContextListener {
   private final Logger log = LoggerFactory.getLogger(getClass());
+	
   public static final String CONFIG_PROPERTIES_FILE = "config.properties";
   public static final String BASE_PATH_ENV = "com.meltmedia.cadmium.contentRoot";
   public static final String REPO_KEY_ENV = "com.meltmedia.cadmium.github.sshKey";
@@ -73,6 +82,13 @@ public class DemoListener extends GuiceServletContextListener {
         this.applicationBasePath = basePath.getAbsolutePath();
       }
     }
+    
+    if( applicationBasePath == null ) {
+    	applicationBasePath = "/Library/WebServer/Cadmium";
+    }
+    
+    SshSessionFactory.setInstance(new GithubConfigSessionFactory(applicationBasePath+"/.ssh"));
+    
 	  String repoDir = servletContextEvent.getServletContext().getInitParameter("repoDir");
 	  if(repoDir != null && repoDir.trim().length() > 0) {
 	    this.repoDir = repoDir;
@@ -85,9 +101,28 @@ public class DemoListener extends GuiceServletContextListener {
     if(repoFile.isDirectory() && repoFile.canWrite()) {
       this.repoDir = repoFile.getAbsoluteFile().getAbsolutePath();
     }
+    else {
+    	try {
+    		CloneCommand cloneCommand = Git.cloneRepository()
+    		        .setBare(false)
+    				.setURI("git@github.com:meltmedia/cadmium-static-content-example.git")
+    				.setBranch("HEAD")
+    				.setDirectory(repoFile)
+    				.setTimeout(60);
+    		cloneCommand.call();
+    		this.repoDir = repoFile.getAbsoluteFile().getAbsolutePath();
+		} catch (Exception e) {
+			log.error("Failed to checkout repo.", e);
+			throw new RuntimeException(e);
+		}
+    }
     File contentFile = new File(this.applicationBasePath, this.contentDir);
     if(contentFile.isDirectory() && contentFile.canWrite()) {
       this.contentDir = contentFile.getAbsoluteFile().getAbsolutePath();
+    }
+    else if( !contentFile.exists() ) {
+    	contentFile.mkdir();
+    	this.contentDir = contentFile.getAbsoluteFile().getAbsolutePath();
     }
     super.contextInitialized(servletContextEvent);
   }
