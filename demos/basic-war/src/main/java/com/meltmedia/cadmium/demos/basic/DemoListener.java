@@ -3,6 +3,7 @@ package com.meltmedia.cadmium.demos.basic;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -10,6 +11,7 @@ import java.util.Properties;
 
 import javax.servlet.ServletContextEvent;
 
+import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.InvalidRefNameException;
@@ -52,42 +54,78 @@ public class DemoListener extends GuiceServletContextListener {
 	
   public static final String CONFIG_PROPERTIES_FILE = "config.properties";
   public static final String BASE_PATH_ENV = "com.meltmedia.cadmium.contentRoot";
-  public static final String REPO_KEY_ENV = "com.meltmedia.cadmium.github.sshKey";
+  public static final String SSH_PATH_ENV = "com.meltmedia.cadmium.github.sshKey";
   public static final String LAST_UPDATED_DIR = "com.meltmedia.cadmium.lastUpdated";
-  private String applicationBasePath = "/Library/WebServer/Cadmium";
+  public File sharedContentRoot;
+  public File applicationContentRoot;
+  private String contentRootPath;
   private String repoDir = "git-checkout";
   private String contentDir = "renderedContent";
+  private File sshDir;
+  
 	Injector injector = null;
 
 	@Override
 	public void contextDestroyed(ServletContextEvent event) {
+		try {
+		  JChannel channel = injector.getInstance(JChannel.class);
+		  channel.close();
+		}
+		catch( Exception e ) {
+			
+		}
+		super.contextDestroyed(event);
 	}
 
 	@Override
   public void contextInitialized(ServletContextEvent servletContextEvent) {
-	  String applicationBasePath = servletContextEvent.getServletContext().getInitParameter("applicationBasePath");
-	  if(applicationBasePath != null && applicationBasePath.trim().length() > 0) {
-	    File appBasePath = new File(applicationBasePath);
-	    if(appBasePath.isDirectory() && appBasePath.canWrite()) {
-	      this.applicationBasePath = applicationBasePath;
-	    }
-	  }
 	  Properties configProperties = new Properties();
-    configProperties.putAll(System.getenv());
-    configProperties.putAll(System.getProperties());
+      configProperties.putAll(System.getenv());
+      configProperties.putAll(System.getProperties());
     
     if(configProperties.containsKey(BASE_PATH_ENV) ) {
-      File basePath = new File(configProperties.getProperty(BASE_PATH_ENV));
-      if(basePath.exists() && basePath.canRead() && basePath.canWrite()) {
-        this.applicationBasePath = basePath.getAbsolutePath();
+    	sharedContentRoot = new File(configProperties.getProperty(BASE_PATH_ENV));
+      if(!sharedContentRoot.exists() || !sharedContentRoot.canRead() || !sharedContentRoot.canWrite()) {
+        sharedContentRoot = null;
       }
     }
     
-    if( applicationBasePath == null ) {
-    	applicationBasePath = "/Library/WebServer/Cadmium";
+    if( sharedContentRoot == null ) {
+    	log.warn("Could not access cadmium content root.  Using the tempdir.");
+    	sharedContentRoot = (File)servletContextEvent.getServletContext().getAttribute("javax.servlet.context.tempdir");
     }
     
-    SshSessionFactory.setInstance(new GithubConfigSessionFactory(applicationBasePath+"/.ssh"));
+    // compute the directory for this application, based on the war name.
+    String path;
+		path = servletContextEvent.getServletContext().getRealPath("/WEB-INF/web.xml");
+		String[] pathSegments = path.split("/");
+		String warName = pathSegments[pathSegments.length - 3];
+      applicationContentRoot = new File(sharedContentRoot, warName);
+      if( !applicationContentRoot.exists() ) applicationContentRoot.mkdir();
+	
+	if( applicationContentRoot == null ) {
+		throw new RuntimeException("Could not make application content root.");
+	}
+	else {
+		log.info("Application content root:"+applicationContentRoot.getAbsolutePath());
+	}
+    
+    if( configProperties.containsKey(SSH_PATH_ENV)) {
+    	sshDir = new File(configProperties.getProperty(SSH_PATH_ENV));
+    	if( !sshDir.exists() && !sshDir.isDirectory()) {
+    		sshDir = null;
+    	}
+    }
+    if( sshDir == null ) {
+    	sshDir = new File(sharedContentRoot, ".ssh");
+	    if( !sshDir.exists() && !sshDir.isDirectory()) {
+	    	sshDir = null;
+	    }
+    }
+    
+	if( sshDir != null ) {
+      SshSessionFactory.setInstance(new GithubConfigSessionFactory(sshDir.getAbsolutePath()));
+	}
     
 	  String repoDir = servletContextEvent.getServletContext().getInitParameter("repoDir");
 	  if(repoDir != null && repoDir.trim().length() > 0) {
@@ -97,7 +135,7 @@ public class DemoListener extends GuiceServletContextListener {
 	  if(contentDir != null && contentDir.trim().length() > 0) {
 	    this.contentDir = contentDir;
 	  }
-    File repoFile = new File(this.applicationBasePath, this.repoDir);
+    File repoFile = new File(this.applicationContentRoot, this.repoDir);
     if(repoFile.isDirectory() && repoFile.canWrite()) {
       this.repoDir = repoFile.getAbsoluteFile().getAbsolutePath();
     }
@@ -116,20 +154,38 @@ public class DemoListener extends GuiceServletContextListener {
 			throw new RuntimeException(e);
 		}
     }
-    File contentFile = new File(this.applicationBasePath, this.contentDir);
-    if(contentFile.isDirectory() && contentFile.canWrite()) {
+
+    File contentFile = new File(this.applicationContentRoot, this.contentDir);
+    if(contentFile.exists() && contentFile.isDirectory() && contentFile.canWrite()) {
       this.contentDir = contentFile.getAbsoluteFile().getAbsolutePath();
     }
     else if( !contentFile.exists() ) {
-    	contentFile.mkdir();
+	    CloneCommand clone = Git.cloneRepository();
+	    clone.setCloneAllBranches(false);
+	    clone.setCloneSubmodules(false);
+	    clone.setDirectory(contentFile);
+	    clone.setURI(new File(repoFile, ".git").getAbsolutePath());
+	    clone.call();
+	    try {
+			FileUtils.deleteDirectory(new File(contentFile, ".git"));
+		} catch (IOException e) {
+			log.warn("Could not delete git dir.", e);
+		}
     	this.contentDir = contentFile.getAbsoluteFile().getAbsolutePath();
     }
+    else {
+    	log.warn("The content directory exists, but we cannot write to it.");
+    	this.contentDir = contentFile.getAbsoluteFile().getAbsolutePath();
+    }
+    
+    injector = Guice.createInjector(createServletModule());
+    
     super.contextInitialized(servletContextEvent);
   }
 
   @Override
 	protected Injector getInjector() {
-		return Guice.createInjector(createServletModule());
+	  return injector;
 	}
 	
 	private ServletModule createServletModule() {
@@ -141,9 +197,9 @@ public class DemoListener extends GuiceServletContextListener {
           configProperties.putAll(System.getenv());
           configProperties.putAll(System.getProperties());
           
-          if(new File(applicationBasePath, CONFIG_PROPERTIES_FILE).exists()) {
+          if(new File(applicationContentRoot, CONFIG_PROPERTIES_FILE).exists()) {
             try{
-              configProperties.load(new FileReader(new File(applicationBasePath, CONFIG_PROPERTIES_FILE)));
+              configProperties.load(new FileReader(new File(applicationContentRoot, CONFIG_PROPERTIES_FILE)));
             } catch(Exception e){
               log.warn("Failed to load properties file ["+CONFIG_PROPERTIES_FILE+"] from content directory.", e);
             }
@@ -175,7 +231,7 @@ public class DemoListener extends GuiceServletContextListener {
           filter("/*").through(MaintenanceFilter.class, maintParams);
 
           //Bind application base path
-          bind(String.class).annotatedWith(Names.named(UpdateChannelReceiver.BASE_PATH)).toInstance(applicationBasePath);
+          bind(String.class).annotatedWith(Names.named(UpdateChannelReceiver.BASE_PATH)).toInstance(applicationContentRoot.getAbsolutePath());
                     
           //Bind git repo path
           bind(String.class).annotatedWith(Names.named(UpdateService.REPOSITORY_LOCATION)).toInstance(repoDir);
@@ -186,8 +242,8 @@ public class DemoListener extends GuiceServletContextListener {
           //Bind channel name
           bind(String.class).annotatedWith(Names.named(JChannelProvider.CHANNEL_NAME)).toInstance("CadmiumChannel");
           
-          if(configProperties.containsKey(REPO_KEY_ENV)) {
-            bind(String.class).annotatedWith(Names.named(REPO_KEY_ENV)).toInstance(configProperties.getProperty(REPO_KEY_ENV));
+          if(configProperties.containsKey(SSH_PATH_ENV)) {
+            bind(String.class).annotatedWith(Names.named(SSH_PATH_ENV)).toInstance(configProperties.getProperty(SSH_PATH_ENV));
           }
           
           bind(Properties.class).annotatedWith(Names.named(CONFIG_PROPERTIES_FILE)).toInstance(configProperties);

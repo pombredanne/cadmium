@@ -50,7 +50,6 @@ public class GithubConfigSessionFactory extends JschConfigSessionFactory {
 
 			@Override
 			public boolean promptYesNo(String arg0) {
-				System.out.println("Ignoring message:"+arg0);
 				return false;
 			}
 
@@ -67,7 +66,6 @@ public class GithubConfigSessionFactory extends JschConfigSessionFactory {
 	public synchronized RemoteSession getSession(URIish arg0,
 			CredentialsProvider arg1, FS arg2, int arg3)
 			throws TransportException {
-		System.out.println("My factory called!!!!!!!!!!!!!");
 		return super.getSession(arg0, arg1, arg2, arg3);
 	}
 
