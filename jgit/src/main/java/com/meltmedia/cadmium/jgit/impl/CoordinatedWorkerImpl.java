@@ -120,7 +120,8 @@ public class CoordinatedWorkerImpl implements CoordinatedWorker {
     						    clone.setDirectory(new File(newDir));
     						    clone.setURI(gitDir.getAbsolutePath());
     						    
-    						    clone.call();
+    						    Git gitClone = clone.call();
+                    gitClone.getRepository().close();
     						    if(!kill) {
       						    lastUpdatedDir = newDir;
       						    
