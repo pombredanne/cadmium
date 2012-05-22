@@ -136,26 +136,24 @@ public class DemoListener extends GuiceServletContextListener {
 	    this.contentDir = contentDir;
 	  }
     File repoFile = new File(this.applicationContentRoot, this.repoDir);
-    if(repoFile.isDirectory() && repoFile.canWrite()) {
-      this.repoDir = repoFile.getAbsoluteFile().getAbsolutePath();
-    }
-    else {
-    	try {
-    		CloneCommand cloneCommand = Git.cloneRepository()
-    		        .setBare(false)
-    				.setURI("git@github.com:meltmedia/cadmium-static-content-example.git")
-    				.setBranch("HEAD")
-    				.setDirectory(repoFile)
-    				.setTimeout(60);
-    		cloneCommand.call();
-    		this.repoDir = repoFile.getAbsoluteFile().getAbsolutePath();
-		} catch (Exception e) {
-			log.error("Failed to checkout repo.", e);
-			throw new RuntimeException(e);
-		}
-    }
-
+    this.repoDir = repoFile.getAbsoluteFile().getAbsolutePath();
     File contentFile = new File(this.applicationContentRoot, this.contentDir);
+    this.contentDir = contentFile.getAbsoluteFile().getAbsolutePath();
+    
+    try {
+    initRepoDir(repoFile);
+    initContentDir(repoFile, contentFile);
+    }
+    catch( Exception e ) {
+      log.warn("Failed to init repository directory or content directory.", e);
+    }
+    
+    injector = Guice.createInjector(createServletModule());
+    
+    super.contextInitialized(servletContextEvent);
+  }
+
+  private void initContentDir(File repoFile, File contentFile) throws IOException {
     if(contentFile.exists() && contentFile.isDirectory() && contentFile.canWrite()) {
       this.contentDir = contentFile.getAbsoluteFile().getAbsolutePath();
     }
@@ -167,21 +165,24 @@ public class DemoListener extends GuiceServletContextListener {
 	    clone.setURI(new File(repoFile, ".git").getAbsolutePath());
 	    Git git = clone.call();
       git.getRepository().close();
-	    try {
 			FileUtils.deleteDirectory(new File(contentFile, ".git"));
-		} catch (IOException e) {
-			log.warn("Could not delete git dir.", e);
-		}
-    	this.contentDir = contentFile.getAbsoluteFile().getAbsolutePath();
     }
     else {
     	log.warn("The content directory exists, but we cannot write to it.");
-    	this.contentDir = contentFile.getAbsoluteFile().getAbsolutePath();
     }
-    
-    injector = Guice.createInjector(createServletModule());
-    
-    super.contextInitialized(servletContextEvent);
+  }
+
+  private void initRepoDir(File repoFile) {
+    if(!repoFile.exists()) {
+    	  CloneCommand cloneCommand = Git.cloneRepository()
+    		        .setBare(false)
+    				.setURI("git@github.com:meltmedia/cadmium-static-content-example.git")
+    				.setBranch("HEAD")
+    				.setDirectory(repoFile)
+    				.setTimeout(60);
+    		Git git = cloneCommand.call();
+    		git.getRepository().close();
+    }
   }
 
   @Override
