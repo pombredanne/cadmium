@@ -165,7 +165,8 @@ public class DemoListener extends GuiceServletContextListener {
 	    clone.setCloneSubmodules(false);
 	    clone.setDirectory(contentFile);
 	    clone.setURI(new File(repoFile, ".git").getAbsolutePath());
-	    clone.call();
+	    Git git = clone.call();
+      git.getRepository().close();
 	    try {
 			FileUtils.deleteDirectory(new File(contentFile, ".git"));
 		} catch (IOException e) {
