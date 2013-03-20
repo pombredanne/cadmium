@@ -16,8 +16,26 @@
 package com.meltmedia.cadmium.deployer;
 
 public class AccessTokenRequest {
+  protected String clientId;
+  protected String clientSecret;
   protected String code;
-  
+
+  public String getClientId() {
+    return clientId;
+  }
+
+  public void setClientId(String clientId) {
+    this.clientId = clientId;
+  }
+
+  public String getClientSecret() {
+    return clientSecret;
+  }
+
+  public void setClientSecret(String clientSecret) {
+    this.clientSecret = clientSecret;
+  }
+
   public void setCode( String code ) {
     this.code = code;
   }

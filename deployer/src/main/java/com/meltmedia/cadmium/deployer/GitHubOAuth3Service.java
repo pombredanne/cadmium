@@ -15,11 +15,18 @@
  */
 package com.meltmedia.cadmium.deployer;
 
+import javax.inject.Inject;
+
+import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.Properties;
 
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.WebApplicationException;
@@ -34,23 +41,49 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.amazonaws.http.HttpResponse;
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.meltmedia.cadmium.core.CadmiumSystemEndpoint;
+import com.meltmedia.cadmium.core.config.ConfigManager;
+import com.meltmedia.cadmium.servlets.guice.CadmiumListener;
 
 @CadmiumSystemEndpoint
-@Path("/github/accessToken")
+@Path("/github")
 public class GitHubOAuth3Service {
+  private static Logger log = LoggerFactory.getLogger(GitHubOAuth3Service.class);
   private static Gson gson = new GsonBuilder()
   .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
   .create();
   
+//  @Inject
+//  GitHubApiConfig config;
+  @Inject
+  protected ConfigManager configManager;
+  
+  @GET
+  @Produces(MediaType.APPLICATION_JSON)
+  public ClientInfo getClientInfo() {
+    Properties githubApiProperties = configManager.getProperties(new File(configManager.getSystemProperties().getProperty(CadmiumListener.BASE_PATH_ENV), "github-api.properties").getAbsoluteFile());
+
+    ClientInfo clientInfo = new ClientInfo();
+    clientInfo.setClientId(githubApiProperties.getProperty("clientId"));
+    return clientInfo;
+  }
+  
   @POST
+  @Path("accessToken")
   @Produces(MediaType.APPLICATION_JSON)
   public AccessTokenResponse getAuthToken(AccessTokenRequest authTokenRequest) {
+    Properties githubApiProperties = configManager.getProperties(new File(configManager.getSystemProperties().getProperty(CadmiumListener.BASE_PATH_ENV), "github-api.properties").getAbsoluteFile());
+    
+    // set the client secret on the message.
+    authTokenRequest.setClientSecret(githubApiProperties.getProperty("clientSecret"));
+    
     DefaultHttpClient client = new DefaultHttpClient();
 
     HttpPost post = new HttpPost("https://github.com/login/oauth/access_token");
