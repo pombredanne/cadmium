@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <meta name="viewport" content="initial-scale=1.0;" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta charset="utf-8" />
+
+  <title>Cadmium | Admin</title>
+
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/global.css" />
+  <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.2/themes/smoothness/jquery-ui.css" />
+  <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+  <script src="http://code.jquery.com/ui/1.10.2/jquery-ui.js"></script>
+  <script src="/js/functions.js"></script>
+  <script src="/js/document.js"></script>
+
+</head>
+
+<body>
+
+<!-- confirmation alert -->
+  <div id="alert">
+    <div>
+      <p>You're moving <span class='name'>captcha</span> from <span class='original'>QA</span> into <span class='new'>Staging</span>. Is that what you want?</p>
+      <a href="#" id="never-mind" class="btn" title="">Never mind</a>
+      <a href="#" id="do-it" class="btn btn-default" title="">Yes, do it!</a>
+    </div>
+  </div>
+
+<!-- sign-in alert -->
+  <div id="sign-in-alert">
+    <div>
+      <p>This site requires Github API authorization.</p>
+      <a href="#" id="sign-in-btn" class="btn btn-default" title="">Authorize with Github.com</a>
+    </div>
+  </div>
+
+<!-- progress bar div -->
+  <div id="progress-modal">
+    <div>
+      <p>Loading cadmium sites. Please wait!</p>
+      <div id="progressbar"></div>
+    </div>
+  </div>
+
+  <header>
+    <img src="images/cadmium.png" id="logo" alt="Cadmium" />
+    <nav>
+      <select id="repo">
+        <option value="show-all">Show All</option>
+      </select>
+    </nav>
+    <p id="user"><span></span><span id="logged-in" style="display:none">Signed in as <span><!-- github username --></span></span></p>
+  </header>
+
+  <div id="environments">
+  </div>
+
+<!-- Not sure if we need this, but it's ready just in case
+  <footer>
+    <ul>
+      <li><a href="#" title="Link">Link</a></li>
+      <li><a href="#" title="Link">Link</a></li>
+      <li><a href="#" title="Link">Link</a></li>
+    </ul>
+  </footer> -->
+
+</body>
+</html>

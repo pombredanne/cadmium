@@ -1,0 +1,348 @@
+/*-----------------------------------
+CADMIUM ADMIN INTERFACE
+
+Author: meltmedia
+Date: 2012
+------------------------------------*/
+
+/*-----------------------------------
+Global Styles
+------------------------------------*/
+
+html { -webkit-text-size-adjust: none; }
+
+body {
+  background-color: #f7f7f7;
+  color: #444;
+  font-family: Helvetica Neue, Helvetica, Arial, sans-serif;
+  min-width: 768px;
+  position: relative;
+}
+
+h1 { font-size: 25px; }
+h2 { font-size: 20px; }
+h3 { font-size: 18px; }
+
+h1 {
+  margin: 15px 0;
+  text-align: center;
+}
+
+h1 span { font-weight: normal; }
+h1 span:before { content: " -- "; }
+
+p, ul, ol, dl {
+  font-size: 15px;
+  line-height: 18px;
+  margin: 0;
+}
+
+a {
+  color: #4e87c2;
+  border-bottom: 1px dotted #2283e7;
+  text-decoration: none;
+}
+
+a:hover {
+  border-bottom: 1px solid #2283e7;
+}
+
+a.btn {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  box-shadow: 1px 1px 2px rgba(0,0,0,.1);
+  color: #666;
+  display: inline-block;
+  font-size: 15px;
+  font-weight: bold;
+  padding: 15px;
+  text-decoration: none;
+  width: auto;
+}
+
+a.btn:hover {
+  background-image: -webkit-linear-gradient(top, #97bbc4, #7fa1a9);
+  color: #fff;
+  text-shadow: 1px 1px 1px rgba(0,0,0,.6);
+}
+
+a.btn:active {
+  background-image: -webkit-linear-gradient(top, #7fa1a9, #97bbc4);
+  box-shadow: inset 2px 2px 5px rgba(0,0,0,.3);
+}
+
+a.btn-default {
+  background: #c9d6d9;
+  color: #333;
+  text-shadow: 1px 1px 0 rgba(255,255,255,.6);
+}
+
+/*-----------------------------------
+Modal / Alert
+------------------------------------*/
+
+/*
+#alert {
+  position: fixed;
+  background: #fff;
+  border-top: 10px solid #cbbd27;
+  box-shadow: 0 0 10px rgba(0,0,0,.4);
+  display: none;
+  left: 31%;
+  padding: 20px;
+  top: 32%;
+  z-index: 1000;
+  width: 400px;
+}*/
+
+
+#alert, #sign-in-alert, #progress-modal    {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: rgba(0,0,0,0.8);
+  z-index: 1000;
+  opacity:0;
+  -webkit-transition: opacity 400ms ease-in;
+  -moz-transition: opacity 400ms ease-in;
+  transition: opacity 400ms ease-in;
+  pointer-events: none;
+}
+
+#alert > div, #sign-in-alert > div, #progress-modal > div {
+  width: 400px;
+  border-top: 10px solid #cbbd27;
+  position: relative;
+  margin: 10% auto;
+  padding: 5px 20px 13px 20px;
+  background: #fff;
+}
+
+#alert p, #sign-in-alert p, #progress-modal p {
+  margin-bottom: 20px;
+}
+
+#alert p span {
+  font-weight: bold;
+}
+
+/*-----------------------------------
+Header
+------------------------------------*/
+
+header {
+  background: #fff;
+  border-bottom: 1px dotted #ccc;
+  border-top: 10px solid #cbbd27;
+  box-shadow: 0 2px 3px rgba(0,0,0,.1);
+  padding: 15px 2%;
+}
+
+#logo {
+  float: left;
+  width: 50px;
+}
+
+#sign-in, #user { float: right; }
+
+#user {
+  color: #aaa;
+  font-size: 13px;
+  font-style: italic;
+  line-height: 17px;
+  margin: 5px 15px 0 10px;
+  text-align: right;
+}
+
+#logged-in span {
+  color: #444;
+  display: block;
+  font-size: 18px;
+  font-style: normal;
+}
+
+/*-----------------------------------
+Navigation / Filtering
+------------------------------------*/
+
+nav {
+  float: left;
+  margin: 10px 15px;
+}
+
+nav select { font-size: 20px; }
+
+/*-----------------------------------
+Context information
+------------------------------------*/
+
+#context {
+  margin: 30px 2%;
+  position: relative;
+}
+
+#context a.btn {
+  padding: 10px;
+  position: absolute;
+  right: 0;
+  top: -2px;
+}
+
+/*-----------------------------------
+Log Information
+------------------------------------*/
+
+#log {
+  background: #efefef;
+  margin: 20px auto;
+  padding: 2%;
+  width: 60%;
+}
+
+#log li {
+  margin: 7px 0;
+}
+
+/*-----------------------------------
+Environments
+------------------------------------*/
+
+#environments {
+  padding: 15px 1%;
+}
+
+#environments section {
+  background: #efefef;
+  float: left;
+  margin: 0 1%;
+  width: 23%;
+}
+
+#environments h2 {
+  background: #fff;
+  border-left: 4px solid #97bbc4;
+  box-shadow: 0 2px 3px rgba(0,0,0,.1);
+  padding: 5px 10px;
+}
+
+.release {
+  background: #fff;
+  border: 1px dotted #ccc;
+  border-radius: 3px;
+  margin: 4%;
+  position: relative;
+}
+
+.release li {
+  padding: 2px 8px;
+}
+
+.release .site-name {
+  background: #dfdaa6;
+  font-weight: bold;
+  margin-bottom: 10px;
+  padding: 5px 30px 5px 8px;
+  text-shadow: 1px 1px 0 rgba(255,255,255,.5);
+}
+
+.editable .site-name {
+  background: #c9d6d9;
+}
+
+.release .delete { display: none; }
+
+.editable .delete {
+  border: none;
+  color: #444;
+  display: block;
+  font-weight: bold;
+  position: absolute;
+  right: 8px;
+  top: 4px;
+}
+
+.release .deployed {
+  color: #777;
+  font-size: 12px;
+  padding: 10px 8px 5px;
+}
+
+.pending {
+  opacity: .5;
+}
+
+.pending:after {
+  bottom: 5px;
+  content: url(../images/spinner.gif);
+  right: 6px;
+  position: absolute;
+}
+
+/*-----------------------------------
+Footer
+------------------------------------*/
+
+footer {
+  border-top: 1px dotted #ccc;
+  font-size: 13px;
+  margin: 50px 2% 20px;
+  padding: 10px 0;
+  text-align: right;
+}
+
+footer li { display: inline-block; }
+footer li:after { content: " - "; }
+footer li:last-child:after { content: ""; }
+
+/*-----------------------------------
+Clearfix
+------------------------------------*/
+
+.clearfix:after,
+header:after,
+#environments:after,
+#context:after,
+section:after {
+  visibility: hidden;
+  display: block;
+  font-size: 0;
+  content: " ";
+  clear: both;
+  height: 0;
+}
+
+/*-----------------------------------
+Media Queries
+------------------------------------*/
+
+/*********************************/
+/* --- Max Screen 1023px wide --- */
+/* ----------------------------- */
+
+@media only screen 
+and (max-width: 1023px) {
+
+#log { width: 92%; }
+
+  #environments section {
+    float: none;
+    width: 98%;
+  }
+
+  #environments h2 {
+    border-left: none;
+    border-top: 1px dotted #97bbc4;
+    text-align: center;
+  }
+
+  .release {
+    float: left;
+    margin: 1.5% 0 1.5% 1.5%;
+    width: 31%;
+  }
+
+} /* end 1023px wide */
+
