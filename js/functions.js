@@ -214,6 +214,7 @@ function updateSiteStatus(domain, runAsAsync) {
       status_cache[ domain ] = statusResp;
       newStatus = statusResp;
       console.log("Updated status: "+domain);
+      updateSiteSection(domain);
     }
   });
   console.log("Returning updated status: "+newStatus);
@@ -326,11 +327,25 @@ function addSiteSection( warInfo, status, envSection ) {
       newSite.attr("data-id", warInfo['domain']);
       $(".site-name", newSite).text(warInfo['domain']);
       $(".branch-name", newSite).text(status['branch']);
-      $(".url a", newSite).attr("href", "http://"+warInfo['domain']);
-      $(".url a", newSite).text("http://"+warInfo['domain']);
+      var rev = status['revision'].substring(0, 7);
+      $(".revision", newSite)
+        .html('<a href="https://github.com/'+orgRepo(status['repo'])+'/commit/'+status['revision'] + '" target="_blank">'+rev+'</a>');
+      $(".url", newSite)
+        .html('<a href="http://' + warInfo['domain'] + '" target="_blank">http://' + warInfo['domain'] + '</a>');
       envSection.append(newSite);
     }
   });
+}
+
+function updateSiteSection(domain) {
+  var status = status_cache[ domain ];
+  if (status) {
+    var siteSection = $('[data-id="'+domain+'"]');
+    $(".branch-name", siteSection).text(status['branch']);
+    var rev = status['revision'].substring(0, 7);
+    $(".revision", siteSection)
+      .html('<a href="https://github.com/'+orgRepo(status['repo'])+'/commit/'+status['revision'] + '" target="_blank">'+rev+'</a>');
+  }
 }
 
 function getSiteHistory( domainlist, access_token ){
@@ -497,16 +512,7 @@ function populateFilter() {
     var projects = {};
     var projectNames = [];
     for(var i=0; i<repos.length; i = i + 1) {
-      var repoName = repos[i];
-      if(repoName.indexOf(":") > -1) {
-        repoName = repoName.split(":")[1];
-      }
-      if(repoName.indexOf(".git") > -1) {
-        repoName = repoName.substring(0, repoName.indexOf(".git"));
-      }
-
-      var splitRepoName = repoName.split('/');
-      repoName = splitRepoName[splitRepoName.length-2]+"/"+splitRepoName[splitRepoName.length-1];
+      var repoName = orgRepo(repos[i]);
       $.ajax({
         url: "https://api.github.com/repos/"+repoName,
         headers: {'Authorization': 'token '+access_token},
@@ -523,6 +529,19 @@ function populateFilter() {
       filterBox.append($("<option value=\""+projects[projectNames[i]]+"\">"+projectNames[i]+"</option>"));
     }
   }
+}
+
+function orgRepo(repo) {
+  if(repo.indexOf(":") > -1) {
+    repo = repo.split(":")[1];
+  }
+  if(repo.indexOf(".git") > -1) {
+    repo = repo.substring(0, repo.indexOf(".git"));
+  }
+
+  var splitRepoName = repo.split('/');
+  repo = splitRepoName[splitRepoName.length-2]+"/"+splitRepoName[splitRepoName.length-1];
+  return repo;
 }
 
 function showAllRepo() {
